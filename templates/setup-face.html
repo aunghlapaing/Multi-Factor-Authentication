@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Setup Face Authentication - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-header">
+                <h1>Setup Face Authentication</h1>
+                <p>Enhance your account security with face recognition</p>
+            </div>
+            
+            {{if .Error}}
+            <div class="error-message">
+                {{.Error}}
+            </div>
+            {{end}}
+            
+            <div class="face-setup">
+                <div class="setup-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Position your face</h3>
+                            <p>Make sure you are in a well-lit area and position your face in the center of the camera.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Capture your face</h3>
+                            <p>Look directly at the camera and click the capture button.</p>
+                            <div class="camera-container">
+                                <video id="video" width="100%" height="auto" autoplay playsinline></video>
+                                <canvas id="canvas" style="display:none; max-width: 100%; height: auto;"></canvas>
+                                <div class="camera-overlay">
+                                    <div class="face-guide"></div>
+                                </div>
+                            </div>
+                            <div class="camera-controls">
+                                <button type="button" id="captureBtn" class="btn btn-primary" style="width: auto; margin-right: 10px;"><i class="fas fa-camera"></i> Capture</button>
+                                <button type="button" id="retakeBtn" class="btn btn-outline" style="display:none; width: auto;"><i class="fas fa-redo"></i> Retake</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Save your face data</h3>
+                            <p>Click the save button to enable face authentication for your account.</p>
+                            <form action="/setup-face" method="POST" id="faceSetupForm">
+                                <input type="hidden" id="faceData" name="face_data" value="">
+                                <button type="submit" id="saveBtn" class="btn btn-primary" disabled>Save Face Data</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-footer">
+                    <p><i class="fas fa-info-circle"></i> Your face data is securely stored and never shared with third parties.</p>
+                    <a href="/home" class="btn btn-outline">Skip for now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <script src="/static/js/face-setup.js"></script>
+</body>
+</html>

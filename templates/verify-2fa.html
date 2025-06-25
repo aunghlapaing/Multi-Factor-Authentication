@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify 2FA - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-header">
+                <h1>Verify 2FA</h1>
+                <p>Enter the 6-digit code from your authenticator app</p>
+            </div>
+            
+            {{if .Error}}
+            <div class="error-message">
+                {{.Error}}
+            </div>
+            {{end}}
+            
+            <form action="/verify-2fa" method="POST" class="2fa-form" id="2faForm">
+                <div class="form-group">
+                    <label for="2fa_code">Authentication Code</label>
+                    <input type="text" id="2fa_code" name="2fa_code" placeholder="Enter 6-digit code" maxlength="6" autocomplete="off" required>
+                    <div class="error-text" id="2faCodeError"></div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Verify</button>
+                
+                <div class="form-footer">
+                    <p>Don't have access to your authenticator app? <a href="#">Contact Support</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

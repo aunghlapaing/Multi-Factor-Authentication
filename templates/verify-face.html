@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Verify Face - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-header">
+                <h1>Face Verification</h1>
+                <p>Verify your identity using face recognition</p>
+            </div>
+            
+            {{if .Error}}
+            <div class="error-message" style="text-align: center;">
+                {{.Error}}
+            </div>
+            {{end}}
+            
+            <div class="face-verification">
+                <div class="camera-container">
+                    <video id="video" width="100%" height="auto" autoplay playsinline></video>
+                    <canvas id="canvas" style="display:none; max-width: 100%; height: auto;"></canvas>
+                    <div class="camera-overlay">
+                        <div class="face-guide"></div>
+                    </div>
+                </div>
+                
+                <div class="verification-status" style="text-align: center; margin: 15px 0;">
+                    <div id="status-message">Looking for your face...</div>
+                    <div class="spinner" id="spinner" style="margin: 10px auto;"></div>
+                </div>
+                
+                <form action="/verify-face" method="POST" id="faceVerifyForm" style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
+                    <input type="hidden" id="faceData" name="face_data" value="">
+                    <button type="submit" id="verifyBtn" class="btn btn-primary" style="width: auto;"><i class="fas fa-user-check"></i> Verify Manually</button>
+                </form>
+                
+                <div class="form-footer" style="text-align: center;">
+                    <p>Having trouble? <a href="/login" class="text-link">Sign in with password</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <script>
+        // Force redirect to home page after successful verification
+        window.onFaceVerificationSuccess = function() {
+            window.location.href = '/home';
+        };
+    </script>
+    <script src="/static/js/face-verify.js?v=1"></script>
+</body>
+</html>

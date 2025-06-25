@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup 2FA - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-header">
+                <h1>Setup Two-Factor Authentication</h1>
+                <p>Enhance your account security with 2FA</p>
+            </div>
+            
+            {{if .Error}}
+            <div class="error-message">
+                {{.Error}}
+            </div>
+            {{end}}
+            
+            <div class="2fa-setup">
+                <div class="setup-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Download an authenticator app</h3>
+                            <p>If you haven't already, download an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator.</p>
+                            <div class="app-links">
+                                <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" class="app-link">
+                                    <i class="fab fa-google-play"></i> Google Play
+                                </a>
+                                <a href="https://apps.apple.com/us/app/google-authenticator/id388497605" target="_blank" class="app-link">
+                                    <i class="fab fa-app-store-ios"></i> App Store
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Scan the QR code</h3>
+                            <p>Open your authenticator app and scan this QR code:</p>
+                            <div class="qr-container">
+                                <img src="/qrcode?t={{.Timestamp}}" alt="2FA QR Code" class="qr-code">
+                            </div>
+                            <p class="text-center">Or enter this code manually: <strong class="secret-key">{{.Secret}}</strong></p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Verify setup</h3>
+                            <p>Enter the 6-digit code from your authenticator app to verify setup:</p>
+                            <form action="/setup-2fa" method="POST" class="mfa-form" id="mfaSetupForm">
+                                <div class="form-group">
+                                    <input type="text" id="2fa_code" name="2fa_code" placeholder="Enter 6-digit code" maxlength="6" autocomplete="off" required>
+                                    <div class="error-text" id="mfaCodeError"></div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Verify and Enable 2FA</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-footer">
+                    <p><i class="fas fa-info-circle"></i> Keep your recovery codes in a safe place. You'll need them if you lose access to your device.</p>
+                    <a href="/home" class="btn btn-outline">Skip for now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+package handlers
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/aungh/login-form/database"
+	"github.com/aungh/login-form/models"
+	"github.com/aungh/login-form/utils"
+	"github.com/markbates/goth"
+)
+
+// generateStateOauthCookie generates a random state string and sets it in a cookie
+func generateStateOauthCookie(w http.ResponseWriter) string {
+	// Generate random state
+	b := make([]byte, 16)
+	rand.Read(b)
+	state := base64.URLEncoding.EncodeToString(b)
+
+	// Set state in cookie
+	expiration := time.Now().Add(365 * 24 * time.Hour)
+	cookie := http.Cookie{
+		Name:     "oauthstate",
+		Value:    state,
+		Expires:  expiration,
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+
+	return state
+}
+
+// GoogleAuthHandler initiates Google OAuth flow
+func GoogleAuthHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Google Auth Handler called")
+	// Store the provider in the session
+	session, _ := store.Get(r, "auth-session")
+	session.Values["oauth_provider"] = "google"
+	session.Save(r, w)
+
+	// Generate a random state
+	b := make([]byte, 16)
+	rand.Read(b)
+	state := base64.URLEncoding.EncodeToString(b)
+
+	// Store state in a cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauthstate",
+		Value:    state,
+		Path:     "/",
+		MaxAge:   int(time.Hour.Seconds()),
+		HttpOnly: true,
+	})
+
+	// Redirect to Google OAuth URL
+	url := utils.GoogleOAuthConfig.AuthCodeURL(state)
+	log.Printf("Google Auth URL: %s", url)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+// HandleOAuthCallback processes OAuth callbacks from any provider
+// This function will be called from the HomeHandler when there's a code and state in the query params
+func HandleOAuthCallback(w http.ResponseWriter, r *http.Request, provider string, code string, state string) (bool, error) {
+	log.Printf("HandleOAuthCallback called for provider: %s with code length: %d", provider, len(code))
+	// Get state from cookie
+	oauthState, err := r.Cookie("oauthstate")
+	if err != nil || state != oauthState.Value {
+		log.Println("Invalid OAuth state or missing cookie")
+		return false, fmt.Errorf("invalid OAuth state")
+	}
+
+	var token *oauth2.Token
+	var userEmail, userName, userID string
+
+	// Process based on provider
+	switch provider {
+	case "google":
+		// Exchange code for token
+		token, err = utils.GoogleOAuthConfig.Exchange(oauth2.NoContext, code)
+		if err != nil {
+			log.Printf("Google code exchange failed: %s", err.Error())
+			return false, err
+		}
+
+		// Get user info from Google
+		userInfo, err := utils.GetGoogleUserInfo(token)
+		if err != nil {
+			log.Printf("Failed to get Google user info: %s", err.Error())
+			return false, err
+		}
+
+		userEmail = userInfo.Email
+		userName = userInfo.Name
+		userID = userInfo.ID
+
+	case "github":
+		log.Printf("GitHub OAuth: Starting code exchange, code length: %d", len(code))
+		// Exchange code for token
+		token, err = utils.GitHubOAuthConfig.Exchange(oauth2.NoContext, code)
+		if err != nil {
+			log.Printf("GitHub OAuth Error: Code exchange failed: %s", err.Error())
+			return false, err
+		}
+		log.Printf("GitHub OAuth: Code exchange successful, token: %+v", token)
+
+		// Get user info from GitHub
+		log.Printf("GitHub OAuth: Retrieving user info")
+		userID, userName, userEmail, err := utils.GetGitHubUserInfo(token)
+		if err != nil {
+			log.Printf("GitHub OAuth Error: Failed to get user info: %s", err.Error())
+			return false, err
+		}
+		log.Printf("GitHub OAuth: User info retrieved successfully: ID=%s, Name=%s, Email=%s", userID, userName, userEmail)
+
+	default:
+		return false, fmt.Errorf("unknown OAuth provider: %s", provider)
+	}
+
+	// Check if user exists
+	log.Printf("Checking if user exists with email: %s", userEmail)
+	user, err := models.GetUserByEmail(userEmail)
+	if err != nil {
+		log.Printf("User not found with email %s, error: %v. Creating new user via %s OAuth", userEmail, err, provider)
+		
+		// Create new user if not exists
+		hashedPassword, err := utils.HashPassword(fmt.Sprintf("%s_%s", provider, userID)) // Generate a random password
+		if err != nil {
+			log.Printf("Failed to hash password: %s", err.Error())
+			return false, err
+		}
+		log.Printf("Password hashed successfully for new user")
+
+		// Create a new user with all required fields
+		newUser := &models.User{
+			Username:        userName,
+			Email:           userEmail,
+			PasswordHash:    hashedPassword,
+			TwoFAEnabled:    false,
+			FaceAuthEnabled: false,
+			Role:            "user", // Explicitly set role to user for OAuth registrations
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(), // Make sure UpdatedAt is also set
+			ProfileImage:    "", // Initialize with empty string
+			TwoFASecret:     "", // Initialize with empty string
+		}
+		log.Printf("Created new user object: %+v", newUser)
+
+		// Store the provider-specific ID
+		if provider == "google" {
+			newUser.GoogleID = userID
+			log.Printf("Set GoogleID to %s", userID)
+		} else if provider == "github" {
+			newUser.GithubID = userID
+			log.Printf("Set GithubID to %s", userID)
+		}
+
+		// Try to create the user directly using database package to bypass any potential issues
+		log.Printf("Creating user directly in database for %s", userEmail)
+		query := `
+		INSERT INTO users (
+			username, email, password_hash, google_id, github_id, 
+			profile_image, twofa_secret, twofa_enabled, face_auth_enabled, 
+			role, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`
+		
+		result, err := database.DB.Exec(
+			query,
+			newUser.Username,
+			newUser.Email,
+			newUser.PasswordHash,
+			newUser.GoogleID,
+			newUser.GithubID,
+			newUser.ProfileImage,
+			newUser.TwoFASecret,
+			newUser.TwoFAEnabled,
+			newUser.FaceAuthEnabled,
+			newUser.Role,
+			newUser.CreatedAt,
+			newUser.UpdatedAt,
+		)
+		
+		if err != nil {
+			log.Printf("Failed to create user directly in database: %s", err.Error())
+			return false, err
+		}
+		
+		// Get the user ID
+		id, err := result.LastInsertId()
+		if err != nil {
+			log.Printf("Failed to get last insert ID: %s", err.Error())
+			return false, err
+		}
+		
+		// Set the ID in the user object
+		newUser.ID = int(id)
+		user = newUser
+		log.Printf("Successfully created new user %s (ID: %d) via %s OAuth", userEmail, user.ID, provider)
+	} else {
+		log.Printf("User %s found, logging in via %s OAuth. User details: %+v", userEmail, provider, user)
+		
+		// Update the provider ID if it's not set
+		updated := false
+		if provider == "google" && user.GoogleID == "" {
+			user.GoogleID = userID
+			updated = true
+			log.Printf("Updated existing user with GoogleID: %s", userID)
+		} else if provider == "github" && user.GithubID == "" {
+			user.GithubID = userID
+			updated = true
+			log.Printf("Updated existing user with GithubID: %s", userID)
+		}
+		
+		// Save the updated user if needed
+		if updated {
+			user.UpdatedAt = time.Now()
+			err = models.UpdateUser(user)
+			if err != nil {
+				log.Printf("Failed to update user with provider ID: %s", err.Error())
+			}
+		}
+	}
+
+	// Check if 2FA or face auth is required
+	session, _ := store.Get(r, "auth-session")
+
+	// Clear OAuth related session values
+	delete(session.Values, "oauth_provider")
+
+	// Handle 2FA if enabled
+	if user.TwoFAEnabled {
+		log.Printf("User %s has 2FA enabled, redirecting to 2FA verification", userEmail)
+
+		// Set pending auth data for 2FA verification
+		session.Values["pending_auth_email"] = user.Email
+		session.Values["pending_auth_user_id"] = user.ID
+		session.Values["pending_auth_username"] = user.Username
+		session.Values["pending_auth_twofa_enabled"] = true
+		session.Values["pending_auth_role"] = user.Role
+
+		// If face auth is also enabled, set flag to chain authentications
+		if user.FaceAuthEnabled {
+			session.Values["pending_face_after_mfa"] = true
+			session.Values["pending_auth_face_enabled"] = true
+		}
+
+		session.Save(r, w)
+
+		// Redirect to 2FA verification
+		http.Redirect(w, r, "/verify-2fa", http.StatusSeeOther)
+		return true, nil
+	}
+
+	// Handle face auth if enabled (and 2FA not enabled)
+	if user.FaceAuthEnabled {
+		log.Printf("User %s has face auth enabled, redirecting to face verification", userEmail)
+
+		// Set pending auth data for face verification
+		session.Values["pending_auth_email"] = user.Email
+		session.Values["pending_auth_user_id"] = user.ID
+		session.Values["pending_auth_username"] = user.Username
+		session.Values["pending_auth_face_enabled"] = true
+		session.Values["pending_auth_role"] = user.Role
+
+		session.Save(r, w)
+
+		// Redirect to face verification
+		http.Redirect(w, r, "/verify-face", http.StatusSeeOther)
+		return true, nil
+	}
+
+	// If no additional auth required, create full session
+	session.Values["authenticated"] = true
+	session.Values["user_id"] = user.ID
+	session.Values["username"] = user.Username
+	session.Values["email"] = user.Email
+	session.Values["twofa_enabled"] = user.TwoFAEnabled
+	session.Values["face_auth_enabled"] = user.FaceAuthEnabled
+	session.Values["role"] = user.Role
+
+	log.Printf("OAuth authentication successful for %s, redirecting to home page", userEmail)
+	session.Save(r, w)
+
+	// Explicitly redirect to home page to ensure proper page loading
+	http.Redirect(w, r, "/home", http.StatusSeeOther)
+	return true, nil
+}
+
+// GithubAuthHandler handles GitHub OAuth authentication
+func GithubAuthHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("GitHub Auth Handler called")
+	// Store the provider in the session
+	session, _ := store.Get(r, "auth-session")
+	session.Values["oauth_provider"] = "github"
+	session.Save(r, w)
+
+	// Generate a random state
+	b := make([]byte, 16)
+	rand.Read(b)
+	state := base64.URLEncoding.EncodeToString(b)
+
+	// Store state in a cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauthstate",
+		Value:    state,
+		Path:     "/",
+		MaxAge:   int(time.Hour.Seconds()),
+		HttpOnly: true,
+	})
+
+	// Redirect to GitHub OAuth URL
+	url := utils.GitHubOAuthConfig.AuthCodeURL(state)
+	log.Printf("GitHub Auth URL: %s", url)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+// GoogleCallbackHandler handles the callback from Google OAuth
+func GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Google Callback Handler called")
+	// Get the code and state from the request
+	code := r.URL.Query().Get("code")
+	state := r.URL.Query().Get("state")
+	
+	if code == "" || state == "" {
+		log.Printf("Missing code or state in Google callback")
+		http.Error(w, "Missing code or state", http.StatusBadRequest)
+		return
+	}
+	
+	// Process the OAuth callback
+	handled, err := HandleOAuthCallback(w, r, "google", code, state)
+	if err != nil {
+		log.Printf("Google OAuth callback error: %v", err)
+		http.Error(w, "Authentication failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	if handled {
+		// Redirect to home page after successful authentication
+		http.Redirect(w, r, "/home", http.StatusSeeOther)
+	} else {
+		// If not handled, redirect to login page
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
+}
+
+// GithubCallbackHandler handles the callback from GitHub OAuth
+func GithubCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("GitHub Callback Handler called")
+	// Get the code and state from the request
+	code := r.URL.Query().Get("code")
+	state := r.URL.Query().Get("state")
+	
+	if code == "" || state == "" {
+		log.Printf("Missing code or state in GitHub callback")
+		http.Error(w, "Missing code or state", http.StatusBadRequest)
+		return
+	}
+	
+	// Process the OAuth callback
+	handled, err := HandleOAuthCallback(w, r, "github", code, state)
+	if err != nil {
+		log.Printf("GitHub OAuth callback error: %v", err)
+		http.Error(w, "Authentication failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	if handled {
+		// Redirect to home page after successful authentication
+		http.Redirect(w, r, "/home", http.StatusSeeOther)
+	} else {
+		// If not handled, redirect to login page
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
+}
+
+// OAuth callbacks are now handled by the HomeHandler

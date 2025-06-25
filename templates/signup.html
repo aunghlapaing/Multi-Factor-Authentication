@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-header">
+                <h1>Create Account</h1>
+                <p>Please fill in the form to create your account</p>
+            </div>
+            
+            {{if .Error}}
+            <div class="error-message">
+                {{.Error}}
+            </div>
+            {{end}}
+            
+            <form action="/signup" method="POST" class="signup-form" id="signupForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    <div class="error-text" id="usernameError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <div class="error-text" id="emailError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input">
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <i class="toggle-password fas fa-eye-slash" onclick="togglePassword('password')"></i>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-meter" id="strengthMeter"></div>
+                        <div class="strength-text" id="strengthText">Password strength</div>
+                    </div>
+                    <div class="error-text" id="passwordError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <div class="password-input">
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
+                        <i class="toggle-password fas fa-eye-slash" onclick="togglePassword('confirm_password')"></i>
+                    </div>
+                    <div class="error-text" id="confirmPasswordError"></div>
+                </div>
+                
+                <div class="form-group captcha-container">
+                    <label for="captcha_solution">Captcha Verification</label>
+                    <p class="captcha-instruction">Please solve this simple math problem to verify you're human:</p>
+                    <div class="captcha-image">
+                        <img src="{{.CaptchaURL}}" alt="Captcha Image" class="captcha-img">
+                    </div>
+                    <input type="hidden" name="captcha_id" value="{{.CaptchaID}}">
+                    <input type="text" id="captcha_solution" name="captcha_solution" placeholder="Enter your answer" required>
+                    <div class="error-text" id="captchaError"></div>
+                </div>
+                
+                <div class="form-options">
+                    <div class="terms">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Sign Up</button>
+                
+                <div class="social-login">
+                    <p>Or sign up with</p>
+                    <div class="social-buttons">
+                        <a href="/auth/google" class="social-btn google">
+                            <i class="fab fa-google"></i>
+                            <span>Google</span>
+                        </a>
+                        <a href="/auth/github" class="social-btn github">
+                            <i class="fab fa-github"></i>
+                            <span>GitHub</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="form-footer">
+                    <p>Already have an account? <a href="/login">Sign In</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

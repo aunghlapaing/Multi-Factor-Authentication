@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Home - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>Welcome, {{.Username}}!</h1>
+                <div class="user-actions">
+                    {{if .IsAdmin}}
+                    <a href="/admin/users" class="btn btn-primary" style="width: auto; margin-right: 10px; text-decoration: none; background-color: #6366f1;">
+                        <i class="fas fa-users-cog"></i> Admin Dashboard
+                    </a>
+                    {{end}}
+                    <a href="/user/settings" class="btn btn-primary" style="width: auto; margin-right: 10px; text-decoration: none;">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                    <a href="/logout" class="btn btn-outline" style="width: auto; text-decoration: none;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+            
+            <div class="dashboard-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Account Information</h2>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Username:</strong> {{.Username}}</p>
+                        <p><strong>Email:</strong> {{.Email}}</p>
+                        <p><strong>Role:</strong> {{if eq .Role "admin"}}<span style="color: #6366f1; font-weight: bold;">Admin</span>{{else}}User{{end}}</p>
+                        <p>
+                            <strong>2FA Status:</strong> 
+                            <span class="status-badge {{if .TwoFAEnabled}}status-enabled{{else}}status-disabled{{end}}">
+                                {{if .TwoFAEnabled}}
+                                    <i class="fas fa-check-circle"></i> Enabled
+                                {{else}}
+                                    <i class="fas fa-times-circle"></i> Disabled
+                                {{end}}
+                            </span>
+                        </p>
+                        <p>
+                            <strong>Face Authentication:</strong> 
+                            <span class="status-badge {{if .FaceAuthEnabled}}status-enabled{{else}}status-disabled{{end}}">
+                                {{if .FaceAuthEnabled}}
+                                    <i class="fas fa-check-circle"></i> Enabled
+                                {{else}}
+                                    <i class="fas fa-times-circle"></i> Disabled
+                                {{end}}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Security Recommendations</h2>
+                    </div>
+                    <div class="card-body">
+                        <ul class="security-list">
+                            <li class="{{if .TwoFAEnabled}}completed{{else}}pending{{end}}">
+                                <i class="fas {{if .TwoFAEnabled}}fa-check-circle{{else}}fa-exclamation-circle{{end}}"></i>
+                                <span>Enable Two-Factor Authentication</span>
+                                {{if not .TwoFAEnabled}}<a href="/setup-2fa" class="btn btn-small btn-primary" style="text-decoration: none;">Setup 2FA</a>{{end}}
+                            </li>
+                            <li class="{{if .FaceAuthEnabled}}completed{{else}}pending{{end}}">
+                                <i class="fas {{if .FaceAuthEnabled}}fa-check-circle{{else}}fa-exclamation-circle{{end}}"></i>
+                                <span>Enable Face Authentication</span>
+                                {{if not .FaceAuthEnabled}}<a href="/setup-face" class="btn btn-small btn-secondary" style="text-decoration: none;">Setup</a>{{end}}
+                            </li>
+                            <li class="completed">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Use a strong password</span>
+                            </li>
+                            <li class="completed">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Keep your account information private</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

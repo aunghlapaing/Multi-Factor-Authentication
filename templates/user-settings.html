@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Settings - Login Form App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        
+        input:focus + .slider {
+            box-shadow: 0 0 1px #4CAF50;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .settings-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .settings-section h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .auth-method {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .auth-method-info {
+            flex: 1;
+        }
+        
+        .auth-method-info h3 {
+            margin: 0 0 5px 0;
+        }
+        
+        .auth-method-info p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .auth-method-toggle {
+            margin-left: 20px;
+        }
+        
+        .settings-form {
+            margin-top: 20px;
+        }
+        
+        .settings-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .info-message {
+            display: flex;
+            align-items: center;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .social-provider-icon {
+            flex: 0 0 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            border-radius: 50%;
+            margin-right: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .social-provider-icon i {
+            font-size: 30px;
+        }
+        
+        .social-provider-icon i.fa-google {
+            color: #DB4437;
+        }
+        
+        .social-provider-icon i.fa-github {
+            color: #333;
+        }
+        
+        .info-message-content {
+            flex: 1;
+        }
+        
+        .info-message-content h3 {
+            margin: 0 0 5px 0;
+            color: #343a40;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .info-message-content p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .form-text.text-muted {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .social-login-field {
+            margin-bottom: 10px;
+        }
+        
+        .social-login-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            border: 1px solid #ced4da;
+        }
+        
+        .social-login-badge i {
+            margin-right: 8px;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container" style="max-width: 800px;">
+            <div class="form-header">
+                <h1>User Settings</h1>
+                <p>Manage your account and security settings</p>
+            </div>
+            
+            {{if .Error}}
+            <div class="error-message">
+                {{.Error}}
+            </div>
+            {{end}}
+            
+            {{if .Success}}
+            <div class="success-message">
+                {{.Success}}
+            </div>
+            {{end}}
+            
+            {{if .Warning}}
+            <div class="warning-message">
+                {{.Warning}}
+            </div>
+            {{end}}
+            
+            <div class="settings-section">
+                <h2>Authentication Methods</h2>
+                
+                <div class="auth-method">
+                    <div class="auth-method-info">
+                        <h3>Two-Factor Authentication (2FA)</h3>
+                        <p>Add an extra layer of security by requiring a code from your authenticator app.</p>
+                    </div>
+                    <div class="auth-method-toggle">
+                        <form action="/user/settings" method="POST" id="toggle2FAForm">
+                            <input type="hidden" name="action" value="toggle_2fa">
+                            <label class="toggle-switch">
+                                <input type="checkbox" onchange="this.form.submit()" {{if .CurrentUser.TwoFAEnabled}}checked{{end}}>
+                                <span class="slider"></span>
+                            </label>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="auth-method">
+                    <div class="auth-method-info">
+                        <h3>Face Authentication</h3>
+                        <p>Use your face as an additional authentication method for enhanced security.</p>
+                    </div>
+                    <div class="auth-method-toggle">
+                        <form action="/user/settings" method="POST" id="toggleFaceAuthForm">
+                            <input type="hidden" name="action" value="toggle_face_auth">
+                            <label class="toggle-switch">
+                                <input type="checkbox" onchange="this.form.submit()" {{if .CurrentUser.FaceAuthEnabled}}checked{{end}}>
+                                <span class="slider"></span>
+                            </label>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Account Information</h2>
+                
+                <form action="/user/settings" method="POST" class="settings-form" id="changeEmailForm">
+                    <input type="hidden" name="action" value="change_email">
+                    <div class="form-group">
+                        <label for="current_email">Current Email</label>
+                        <input type="email" id="current_email" value="{{.CurrentUser.Email}}" readonly disabled>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_email">New Email</label>
+                        <input type="email" id="new_email" name="new_email" placeholder="Enter new email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="current_password_email">Current Password</label>
+                        <div class="password-input">
+                            <input type="password" id="current_password_email" name="current_password" placeholder="Enter your current password" required>
+                            <i class="toggle-password fas fa-eye-slash" onclick="togglePassword('current_password_email')"></i>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Update Email</button>
+                </form>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Change Password</h2>
+                
+                <!-- Debug info: GoogleID='{{.CurrentUser.GoogleID}}', GithubID='{{.CurrentUser.GithubID}}' -->
+                {{if or (ne .CurrentUser.GoogleID "") (ne .CurrentUser.GithubID "")}}
+                <div class="info-message">
+                    <div class="social-provider-icon">
+                        {{if ne .CurrentUser.GithubID ""}}
+                        <i class="fab fa-github"></i>
+                        {{else if ne .CurrentUser.GoogleID ""}}
+                        <i class="fab fa-google"></i>
+                        {{end}}
+                    </div>
+                    <div class="info-message-content">
+                        <h3>Social Login Account</h3>
+                        <p>You registered using {{if ne .CurrentUser.GithubID ""}}GitHub{{else if ne .CurrentUser.GoogleID ""}}Google{{end}} authentication. 
+                        Setting a password below will allow you to also login directly with your email and password.</p>
+                    </div>
+                </div>
+                {{end}}
+                
+                <form action="/user/settings" method="POST" class="settings-form" id="changePasswordForm">
+                    <input type="hidden" name="action" value="change_password">
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        {{if or (ne .CurrentUser.GoogleID "") (ne .CurrentUser.GithubID "")}}
+                        <div class="social-login-field">
+                            <div class="social-login-badge">
+                                <i class="fas fa-user-shield"></i> Not required for social login
+                            </div>
+                            <input type="hidden" id="current_password" name="current_password" value="">
+                        </div>
+                        {{else}}
+                        <div class="password-input">
+                            <input type="password" id="current_password" name="current_password" placeholder="Enter current password" required>
+                            <i class="toggle-password fas fa-eye-slash" onclick="togglePassword('current_password')"></i>
+                        </div>
+                        {{end}}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <div class="password-input">
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password" required>
+                            <i class="toggle-password fas fa-eye-slash" onclick="togglePassword('new_password')"></i>
+                        </div>
+                        <div class="password-strength-meter">
+                            <div class="strength-meter-bar" id="strengthMeter"></div>
+                        </div>
+                        <div class="password-feedback" id="passwordFeedback"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <div class="password-input">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required>
+                            <i class="toggle-password fas fa-eye-slash" onclick="togglePassword('confirm_password')"></i>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </form>
+            </div>
+            
+            <div class="form-footer">
+                <a href="/home" class="btn btn-outline">Back to Home</a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+    <script>
+        function togglePassword(inputId) {
+            const passwordInput = document.getElementById(inputId);
+            const icon = passwordInput.nextElementSibling;
+            
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            } else {
+                passwordInput.type = "password";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            }
+        }
+        
+        // Password strength meter
+        const passwordInput = document.getElementById('new_password');
+        const strengthMeter = document.getElementById('strengthMeter');
+        const feedback = document.getElementById('passwordFeedback');
+        
+        passwordInput.addEventListener('input', updateStrengthMeter);
+        
+        function updateStrengthMeter() {
+            const password = passwordInput.value;
+            let strength = 0;
+            let feedbackText = '';
+            
+            if (password.length >= 8) {
+                strength += 25;
+            }
+            
+            if (password.match(/[A-Z]/)) {
+                strength += 25;
+            }
+            
+            if (password.match(/[0-9]/)) {
+                strength += 25;
+            }
+            
+            if (password.match(/[^A-Za-z0-9]/)) {
+                strength += 25;
+            }
+            
+            strengthMeter.style.width = strength + '%';
+            
+            if (strength <= 25) {
+                strengthMeter.style.backgroundColor = '#ff4d4d';
+                feedbackText = 'Weak password';
+            } else if (strength <= 50) {
+                strengthMeter.style.backgroundColor = '#ffa64d';
+                feedbackText = 'Moderate password';
+            } else if (strength <= 75) {
+                strengthMeter.style.backgroundColor = '#ffff4d';
+                feedbackText = 'Good password';
+            } else {
+                strengthMeter.style.backgroundColor = '#4CAF50';
+                feedbackText = 'Strong password';
+            }
+            
+            feedback.textContent = feedbackText;
+        }
+    </script>
+</body>
+</html>
